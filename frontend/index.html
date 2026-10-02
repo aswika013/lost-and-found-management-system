@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lost & Found Management System</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="style.css">
+
+</head>
+
+<body>
+
+<header class="banner">
+  <div>
+    <h1>Lost &amp; Found Manager</h1>
+    <p>Reconnecting people with their lost and cherished belongings.</p>
+  </div>
+
+  <div class="btns">
+    <button class="btn lost" data-new="lost">Report lost item</button>
+    <button class="btn found" data-new="found">Register Found item</button>
+  </div>
+</header>
+
+<div class="wrap">
+<section class="stats" aria-label="Summary">
+  <div class="stat l"><b id="s1">0</b><span>Active Lost Items</span></div>
+  <div class="stat f"><b id="s2">0</b><span>Unclaimed Found Items</span></div>
+  <div class="stat"><b id="s3">0</b><span>Successful Matches</span></div>
+  <div class="stat"><b id="s4">0</b><span>Returned to Owner</span></div>
+</section>
+
+<section class="tools" aria-label="Filters">
+  <input id="q" type="search" placeholder="Looking for something?" aria-label="Search">
+  
+  <div class="filter-buttons" role="group" aria-label="Type">
+    <button aria-pressed="true" data-filter="all">All Items</button>
+    <button aria-pressed="false" data-filter="lost">Lost</button>
+    <button aria-pressed="false" data-filter="found">Found</button>
+    <button aria-pressed="false" data-filter="returned">Returned</button>
+</div>
+
+<select id="cat" aria-label="Category"><option value="">All categories</option></select>
+
+  <select id="sort" aria-label="Sort">
+    <option value="new">Latest</option>
+    <option value="old">Oldest</option>
+    <option value="name">A–Z</option>
+  </select>
+
+</section>
+
+<main class="grid" id="grid"></main>
+</div>
+</div>
+
+<dialog id="formDlg">
+    <form class="dlg" id="form" method="dialog">
+        <h2 id="fTitle"></h2>
+        <p class="meta">Enter as much detail as you can so staff can find a match.</p>
+
+        <label for="fName">Item</label>
+        <input id="fName" required placeholder="e.g. Black leather wallet">
+    
+        <div class="row">
+        <div>
+        <label for="fCat">Category</label>
+        <select id="fCat" required>
+             <option value="" disabled selected>Select category</option>
+        </select>
+        </div>
+      
+        <div>
+            <label for="fDate" id="fDateL">Date lost</label>
+            <input id="fDate" type="date" required>
+        </div>
+    </div>
+
+    <label for="fPlace" id="fPlaceL">Where was it lost?</label>
+    <input id="fPlace" required placeholder="e.g. Main library, 2nd floor">
+    
+    <div class="row">
+      <div><label for="fPerson" id="fPersonL">Owner name</label><input id="fPerson" required></div>
+      
+      <div><label for="fContact">Phone or email</label><input id="fContact"></div>
+    </div>
+
+    <label for="fDesc">Description</label>
+    <textarea id="fDesc" rows="3" placeholder="Colour, brand, marks, contents"></textarea>
+    
+    <div class="acts">
+      <button type="button" class="btn ghost" id="fCancel">Cancel</button>
+      <button type="submit" class="btn dark" id="fSave">Save report</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="viewDlg"><div class="dlg" id="view"></div></dialog>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script src="script.js"></script>
+</body>
+</html>
