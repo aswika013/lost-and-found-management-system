@@ -1,4 +1,8 @@
 //for filter-button
+const API_URL = "http://localhost:8081/api/tickets";
+let formType = "lost";
+const form = document.querySelector("#form");
+
 let type = "all";  
 
 const buttons = document.querySelectorAll(".filter-buttons button");
@@ -28,13 +32,21 @@ newButtons.forEach(function (button) {
 
     form.reset();
 
-    if (button.dataset.new === "lost") {
-      formTitle.textContent = "Report lost item";
-    } else {
-      formTitle.textContent = "Register found item";
-    }
+    formType = button.dataset.new;
 
-    formDialog.showModal();
+if (formType === "lost") {
+  formTitle.textContent = "Report lost item";
+  document.querySelector("#fDateL").textContent = "Date lost";
+  document.querySelector("#fPlaceL").textContent = "Where was it lost?";
+  document.querySelector("#fPersonL").textContent = "Owner name";
+} else {
+  formTitle.textContent = "Register found item";
+  document.querySelector("#fDateL").textContent = "Date found";
+  document.querySelector("#fPlaceL").textContent = "Where was it found?";
+  document.querySelector("#fPersonL").textContent = "Finder name";
+}
+
+  formDialog.showModal();
   });
 });
 
@@ -55,53 +67,43 @@ function fillSelect(select, names) {
   });
 }
 
-async function loadCategories() {
-  let categories;
-
-  try {
-    const response = await fetch("/api/categories");   // your backend address
-    if (!response.ok) throw new Error("Server error");
-    categories = await response.json();
-  } catch (error) {
-    console.log("Could not load categories, using defaults:", error);
-    categories = defaultCategories;
-  }
-
-  fillSelect(document.querySelector("#fCat"), categories);   // form dropdown
-  fillSelect(document.querySelector("#cat"), categories);    // filter dropdown
+function loadCategories() {
+  fillSelect(document.querySelector("#fCat"), defaultCategories);   // form dropdown
+  fillSelect(document.querySelector("#cat"), defaultCategories);    // filter dropdown
 }
 
 loadCategories();
 
+let items = [];
 
-
-
-
-// TEMPORARY: delete this when the backend is ready
-let items = [
-  {
-    id: 1,
-    type: "lost",                      // "lost" or "found"
-    name: "Black leather wallet",
-    category: "Bags & wallets",
-    place: "Main library, 2nd floor",
-    date: "2026-09-29",
-    image: null,                       // later: a URL like "/uploads/wallet.jpg"
-    description: "Contains student ID",
-    status: "open"                     // "open", "matched" or "returned"
-  },
-  {
-    id: 2,
-    type: "found",
-    name: "Blue umbrella",
-    category: "Other",
-    place: "Bus stop entrance",
-    date: "2026-10-01",
+// Converts a ticket from the backend into the shape render() expects
+function fromApi(ticket) {
+  return {
+    id: ticket.id,
+    type: ticket.type.toLowerCase(),
+    name: ticket.itemName,
+    category: ticket.category,
+    place: ticket.location,
+    date: ticket.eventDate,
     image: null,
-    description: "",
-    status: "open"
+    description: ticket.description,
+    status: ticket.status.toLowerCase()
+  };
+}
+
+// GET: load all tickets from the backend, then draw the cards
+async function loadItems() {
+  try {
+    const response = await fetch(API_URL);
+    if (!response.ok) throw new Error("Server error");
+    const tickets = await response.json();
+    items = tickets.map(fromApi);
+  } catch (error) {
+    console.error("Could not load tickets:", error);
+    items = [];
   }
-];
+  render();
+}
 
 function render() {
   const grid = document.querySelector("#grid");
@@ -135,4 +137,35 @@ function render() {
   });
 }
 
-render();
+// POST: runs when "Save report" is clicked
+form.addEventListener("submit", async function (event) {
+  event.preventDefault();   // stop the default dialog behaviour
+
+  const ticket = {
+    itemName: document.querySelector("#fName").value,
+    category: document.querySelector("#fCat").value,
+    eventDate: document.querySelector("#fDate").value,
+    location: document.querySelector("#fPlace").value,
+    contactName: document.querySelector("#fPerson").value,
+    contactInfo: document.querySelector("#fContact").value,
+    description: document.querySelector("#fDesc").value,
+    type: formType.toUpperCase()   // "LOST" or "FOUND"
+  };
+
+  try {
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(ticket)
+    });
+    if (!response.ok) throw new Error("Server error");
+
+    formDialog.close();
+    loadItems();   // refresh the cards
+  } catch (error) {
+    console.error("Could not save ticket:", error);
+    alert("Could not save the report. Is the backend running?");
+  }
+});
+
+loadItems();
