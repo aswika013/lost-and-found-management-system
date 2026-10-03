@@ -88,6 +88,7 @@ function fromApi(ticket) {
     image: null,
     description: ticket.description,
     status: ticket.status.toLowerCase()
+    createdAt: ticket.createdAt
   };
 }
 
@@ -105,17 +106,66 @@ async function loadItems() {
   render();
 }
 
+function getVisibleItems() {
+  const query = document.querySelector("#q").value.trim().toLowerCase();
+  const category = document.querySelector("#cat").value;
+  const sort = document.querySelector("#sort").value;
+
+  const result = items.filter(function (item) {
+    // 1. type buttons (note: "returned" is a status, not a type)
+    let matchesType;
+    if (type === "all") {
+      matchesType = true;
+    } else if (type === "returned") {
+      matchesType = item.status === "returned";
+    } else {
+      matchesType = item.type === type;
+    }
+
+    // 2. category dropdown ("" means all categories)
+    const matchesCategory = category === "" || item.category === category;
+
+    // 3. search box
+    const text = (item.name + " " + item.category + " " + item.place + " " + (item.description || "")).toLowerCase();
+    const matchesSearch = text.includes(query);
+
+    return matchesType && matchesCategory && matchesSearch;
+  });
+
+  // 4. sorting
+  result.sort(function (a, b) {
+    if (sort === "old") return a.createdAt.localeCompare(b.createdAt);
+    if (sort === "name") return a.name.localeCompare(b.name);
+    return b.createdAt.localeCompare(a.createdAt);   // "new" (default)
+  });
+
+  return result;
+}
+
+function updateStats() {
+  document.querySelector("#s1").textContent =
+    items.filter(function (i) { return i.type === "lost" && i.status === "open"; }).length;
+  document.querySelector("#s2").textContent =
+    items.filter(function (i) { return i.type === "found" && i.status === "open"; }).length;
+  document.querySelector("#s3").textContent =
+    items.filter(function (i) { return i.status === "matched"; }).length;
+  document.querySelector("#s4").textContent =
+    items.filter(function (i) { return i.status === "returned"; }).length;
+}
+
 function render() {
   const grid = document.querySelector("#grid");
+  const visibleItems = getVisibleItems();
+  updateStats();
 
-  if (items.length === 0) {
-    grid.innerHTML = "<p>No items yet.</p>";
+  if (visibleItems.length === 0) {
+    grid.innerHTML = "<p>No items found.</p>";
     return;
   }
 
   grid.innerHTML = "";   // clear old cards first
 
-  items.forEach(function (item) {
+  visibleItems.forEach(function (item) {
     const card = document.createElement("button");
     card.className = "card " + item.type;      // "card lost" or "card found"
 
@@ -167,5 +217,9 @@ form.addEventListener("submit", async function (event) {
     alert("Could not save the report. Is the backend running?");
   }
 });
+
+document.querySelector("#q").addEventListener("input", render);
+document.querySelector("#cat").addEventListener("change", render);
+document.querySelector("#sort").addEventListener("change", render);
 
 loadItems();
