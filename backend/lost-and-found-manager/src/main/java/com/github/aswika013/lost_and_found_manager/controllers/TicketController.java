@@ -3,8 +3,10 @@ package com.github.aswika013.lost_and_found_manager.controllers;
 import com.github.aswika013.lost_and_found_manager.entity.Ticket;
 import com.github.aswika013.lost_and_found_manager.repository.TicketRepository;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
+import java.util.Map;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/tickets")
@@ -50,4 +52,17 @@ public Ticket update(@PathVariable Long id, @RequestBody Ticket updated) {
     public void delete(@PathVariable Long id) {
         repository.deleteById(id);
     }
+
+
+@PatchMapping("/{id}/status")
+public Ticket updateStatus(@PathVariable Long id, @RequestBody Map<String, String> body) {
+    String status = body.get("status");
+    if (!List.of("OPEN", "MATCHED", "RETURNED").contains(status)) {
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid status");
+    }
+    Ticket ticket = repository.findById(id).orElseThrow();
+    ticket.setStatus(status);
+    return repository.save(ticket);
+}
+
 }

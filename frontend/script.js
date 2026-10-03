@@ -87,7 +87,7 @@ function fromApi(ticket) {
     date: ticket.eventDate,
     image: null,
     description: ticket.description,
-    status: ticket.status.toLowerCase()
+    status: ticket.status.toLowerCase(),
     createdAt: ticket.createdAt
   };
 }
