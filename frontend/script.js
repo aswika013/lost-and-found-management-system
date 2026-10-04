@@ -5,6 +5,43 @@ const API_URL = BACKEND + "/api/tickets";
 let editingId = null;   // null = creating a new ticket, a number = editing that ticket
 let formType = "lost";
 const form = document.querySelector("#form");
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+// Turns a failed server response into a readable message
+async function readError(response) {
+  let data = null;
+  try {
+    data = await response.json();
+  } catch (e) {
+    // the response had no JSON body
+  }
+
+  let text = data && data.message
+    ? data.message
+    : "Something went wrong (error " + response.status + ")";
+
+  if (data && data.errors) {
+    text += "\n- " + Object.values(data.errors).join("\n- ");
+  }
+  return text;
+}
+
+// Shows the right message for a failed request
+function showError(error) {
+  if (error instanceof TypeError) {
+    // fetch itself failed: the server could not be reached
+    alert("Could not reach the server. Please check that it is running and try again.");
+  } else {
+    alert(error.message);
+  }
+}
 
 let type = "all";  
 
@@ -83,30 +120,33 @@ let items = [];
 function fromApi(ticket) {
   return {
     id: ticket.id,
-    type: ticket.type.toLowerCase(),
-    name: ticket.itemName,
-    category: ticket.category,
-    contactName: ticket.contactName,
-    contactInfo: ticket.contactInfo,
-    place: ticket.location,
-    date: ticket.eventDate,
+    type: (ticket.type || "lost").toLowerCase(),
+    name: ticket.itemName || "(no name)",
+    category: ticket.category || "",
+    contactName: ticket.contactName || "",
+    contactInfo: ticket.contactInfo || "",
+    place: ticket.location || "",
+    date: ticket.eventDate || "",
     image: ticket.imageUrl ? BACKEND + ticket.imageUrl : null,
-    description: ticket.description,
-    status: ticket.status.toLowerCase(),
-    createdAt: ticket.createdAt
+    description: ticket.description || "",
+    status: (ticket.status || "open").toLowerCase(),
+    createdAt: ticket.createdAt || ""
   };
 }
 
 // GET: load all tickets from the backend, then draw the cards
+let loadError = false;
 async function loadItems() {
   try {
     const response = await fetch(API_URL);
     if (!response.ok) throw new Error("Server error");
     const tickets = await response.json();
     items = tickets.map(fromApi);
+    loadError = false;
   } catch (error) {
     console.error("Could not load tickets:", error);
     items = [];
+    loadError = true;
   }
   render();
 }
@@ -171,14 +211,15 @@ function openDetails(item) {
             </button>`;
   }).join("");
 
-  viewBox.innerHTML = `
-    <h2>${item.name}</h2>
-    <p class="meta">${item.type === "lost" ? "Lost" : "Found"} item · ${item.category}</p>
-    <p class="meta">Place: ${item.place}</p>
-    <p class="meta">Date: ${item.date}</p>
-    <p class="meta">Contact: ${item.contactName || "-"} (${item.contactInfo || "-"})</p>
-    <p>${item.description || "No description"}</p>
-    <p class="meta">Status: <b>${item.status}</b></p>
+    viewBox.innerHTML = `
+    ${item.image ? `<img class="card-img" src="${escapeHtml(item.image)}" alt="${escapeHtml(item.name)}">` : ""}
+    <h2>${escapeHtml(item.name)}</h2>
+    <p class="meta">${item.type === "lost" ? "Lost" : "Found"} item · ${escapeHtml(item.category)}</p>
+    <p class="meta">Place: ${escapeHtml(item.place)}</p>
+    <p class="meta">Date: ${escapeHtml(item.date)}</p>
+    <p class="meta">Contact: ${escapeHtml(item.contactName || "-")} (${escapeHtml(item.contactInfo || "-")})</p>
+    <p>${escapeHtml(item.description || "No description")}</p>
+    <p class="meta">Status: <b>${escapeHtml(item.status)}</b></p>
     <div class="acts">
       <button type="button" class="btn ghost" id="vClose">Close</button>
       <button type="button" class="btn ghost" id="vEdit">Edit</button>
@@ -219,7 +260,7 @@ async function setStatus(id, status) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: status.toUpperCase() })
     });
-    if (!response.ok) throw new Error("Server error");
+      if (!response.ok) throw new Error(await readError(response));
 
     viewDialog.close();
     loadItems();   // refresh cards and stats
@@ -233,7 +274,7 @@ async function setStatus(id, status) {
 async function deleteTicket(id) {
   try {
     const response = await fetch(API_URL + "/" + id, { method: "DELETE" });
-    if (!response.ok) throw new Error("Server error");
+       if (!response.ok) throw new Error(await readError(response));
 
     viewDialog.close();
     loadItems();   // refresh cards and stats
@@ -267,6 +308,16 @@ function render() {
   const visibleItems = getVisibleItems();
   updateStats();
 
+    if (loadError) {
+    grid.innerHTML = `
+      <div>
+        <p>Could not load tickets. Please check that the server is running and try again.</p>
+        <button type="button" class="btn dark" id="retry">Try again</button>
+      </div>`;
+    grid.querySelector("#retry").addEventListener("click", loadItems);
+    return;
+  }
+
   if (visibleItems.length === 0) {
     grid.innerHTML = "<p>No items found.</p>";
     return;
@@ -280,16 +331,16 @@ function render() {
 
     // the image: use the real one if it exists, otherwise a grey box
     const picture = item.image
-      ? `<img class="card-img" src="${item.image}" alt="${item.name}">`
+      ? `<img class="card-img" src="${escapeHtml(item.image)}" alt="${escapeHtml(item.name)}">`
       : `<div class="card-img placeholder">No photo</div>`;
 
     card.innerHTML = `
       ${picture}
-      <h3>${item.name}</h3>
-      <div class="meta">${item.category}</div>
-      <div class="meta">${item.place}</div>
-      <div class="meta">${item.date}</div>
-      <div class="foot"><span>${item.status}</span></div>
+      <h3>${escapeHtml(item.name)}</h3>
+      <div class="meta">${escapeHtml(item.category)}</div>
+      <div class="meta">${escapeHtml(item.place)}</div>
+      <div class="meta">${escapeHtml(item.date)}</div>
+      <div class="foot"><span>${escapeHtml(item.status)}</span></div>
     `;
 
       card.addEventListener("click", function () {
@@ -343,7 +394,7 @@ form.addEventListener("submit", async function (event) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(ticket)
     });
-    if (!response.ok) throw new Error("Server error");
+      if (!response.ok) throw new Error(await readError(response));
 
     // step 2: upload the photo, if one was chosen
     const saved = await response.json();
@@ -356,15 +407,15 @@ form.addEventListener("submit", async function (event) {
         method: "POST",
         body: data        // no Content-Type header: the browser sets it
       });
-      if (!imgResponse.ok) throw new Error("Image upload failed");
+          if (!imgResponse.ok) throw new Error(await readError(imgResponse));
     }
 
     editingId = null;
     formDialog.close();
     loadItems();
-  } catch (error) {
+    } catch (error) {
     console.error("Could not save ticket:", error);
-    alert("Could not save the report. Is the backend running?");
+    showError(error);
   }
 });
 

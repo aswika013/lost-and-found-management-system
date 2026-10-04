@@ -13,6 +13,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.UUID;
 import org.springframework.web.multipart.MultipartFile;
+import com.github.aswika013.lost_and_found_manager.dto.TicketRequest;
+import com.github.aswika013.lost_and_found_manager.exception.TicketNotFoundException;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/tickets")
@@ -30,29 +33,23 @@ public class TicketController {
     }
 
     @PostMapping
-    public Ticket create(@RequestBody Ticket ticket) {
+    public Ticket create(@Valid @RequestBody TicketRequest request) {
+        Ticket ticket = new Ticket();
+        apply(request, ticket);
         return repository.save(ticket);
     }
 
     @GetMapping("/{id}")
     public Ticket getOne(@PathVariable Long id) {
-        return repository.findById(id).orElseThrow();
+        return repository.findById(id).orElseThrow(() -> new TicketNotFoundException(id));
     }
 
-  @PutMapping("/{id}")
-public Ticket update(@PathVariable Long id, @RequestBody Ticket updated) {
-    Ticket ticket = repository.findById(id).orElseThrow();
-    ticket.setItemName(updated.getItemName());
-    ticket.setCategory(updated.getCategory());
-    ticket.setEventDate(updated.getEventDate());
-    ticket.setLocation(updated.getLocation());
-    ticket.setContactName(updated.getContactName());
-    ticket.setContactInfo(updated.getContactInfo());
-    ticket.setDescription(updated.getDescription());
-    ticket.setType(updated.getType());
-    ticket.setStatus(updated.getStatus());
-    return repository.save(ticket);
-}
+    @PutMapping("/{id}")
+    public Ticket update(@PathVariable Long id, @Valid @RequestBody TicketRequest request) {
+        Ticket ticket = repository.findById(id).orElseThrow(() -> new TicketNotFoundException(id));
+        apply(request, ticket);
+        return repository.save(ticket);
+    }
 
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Long id) {
@@ -90,6 +87,17 @@ public Ticket updateStatus(@PathVariable Long id, @RequestBody Map<String, Strin
 
         ticket.setImageUrl("/uploads/" + filename);
         return repository.save(ticket);
+    }
+
+    private void apply(TicketRequest r, Ticket t) {
+        t.setItemName(r.itemName());
+        t.setCategory(r.category());
+        t.setEventDate(r.eventDate());
+        t.setLocation(r.location());
+        t.setContactName(r.contactName());
+        t.setContactInfo(r.contactInfo());
+        t.setDescription(r.description());
+        t.setType(r.type());
     }
 
 }
