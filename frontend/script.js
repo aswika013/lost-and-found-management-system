@@ -304,6 +304,18 @@ function render() {
 form.addEventListener("submit", async function (event) {
   event.preventDefault();
 
+    const photo = document.querySelector("#fImage").files[0];
+  const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+
+  if (photo && !allowedTypes.includes(photo.type)) {
+    alert("Please upload a JPEG, JPG, PNG or WEBP picture only.");
+    return;
+  }
+  if (photo && photo.size > 5 * 1024 * 1024) {
+    alert("The picture is too large. Please choose one under 5 MB.");
+    return;
+  }
+
   const ticket = {
     itemName: document.querySelector("#fName").value,
     category: document.querySelector("#fCat").value,
