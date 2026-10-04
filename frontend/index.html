@@ -60,7 +60,7 @@
         <h2 id="fTitle"></h2>
         <p class="meta">Enter as much detail as you can so staff can find a match.</p>
 
-        <label for="fName">Item</label>
+        <label for="fName" maxlength="100">Item</label>
         <input id="fName" required placeholder="e.g. Black leather wallet">
     
         <div class="row">
@@ -77,17 +77,17 @@
         </div>
     </div>
 
-    <label for="fPlace" id="fPlaceL">Where was it lost?</label>
+    <label for="fPlace" id="fPlaceL" maxlength="150">Where was it lost?</label>
     <input id="fPlace" required placeholder="e.g. Main library, 2nd floor">
     
     <div class="row">
-      <div><label for="fPerson" id="fPersonL">Owner name</label><input id="fPerson" required></div>
+      <div><label for="fPerson" id="fPersonL" maxlength="100">Owner name</label><input id="fPerson" required></div>
       
       <div><label for="fContact">Phone or email</label><input id="fContact" required></div>
     </div>
 
     <label for="fDesc">Description</label>
-    <textarea id="fDesc" rows="3" placeholder="Colour, brand, marks, contents"></textarea>
+    <textarea id="fDesc" rows="3" maxlength="1000" placeholder="Colour, brand, marks, contents"></textarea>
     
     <label for="fImage" type="file"  accept="image/jpeg,image/png,image/webp">Photo (optional)</label>
     <input id="fImage" type="file" accept="image/*">

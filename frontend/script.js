@@ -14,6 +14,30 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
+// Today's date as YYYY-MM-DD in the user's local time
+function todayString() {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return now.getFullYear() + "-" + month + "-" + day;
+}
+
+// Same rule as the server: a phone number or an email
+const contactPattern = /^(\+?[0-9 ()-]{7,20}|[^@\s]+@[^@\s]+\.[^@\s]+)$/;
+
+function checkContact() {
+  const input = document.querySelector("#fContact");
+  const value = input.value.trim();
+
+  if (value === "" || contactPattern.test(value)) {
+    input.setCustomValidity("");   // OK (an empty value is caught by "required")
+  } else {
+    input.setCustomValidity("Enter a valid phone number or email");
+  }
+}
+
+document.querySelector("#fContact").addEventListener("input", checkContact);
+
 // Turns a failed server response into a readable message
 async function readError(response) {
   let data = null;
@@ -78,6 +102,9 @@ function setFormLabels(kind, editing) {
   document.querySelector("#fPlaceL").textContent = kind === "lost" ? "Where was it lost?" : "Where was it found?";
   document.querySelector("#fPersonL").textContent = kind === "lost" ? "Owner name" : "Finder name";
   document.querySelector("#fSave").textContent = editing ? "Save changes" : "Save report";
+
+  document.querySelector("#fDate").max = todayString();           // no future dates
+  document.querySelector("#fContact").setCustomValidity("");      // clear an old message
 }
 
 newButtons.forEach(function (button) {
@@ -367,14 +394,14 @@ form.addEventListener("submit", async function (event) {
     return;
   }
 
-  const ticket = {
-    itemName: document.querySelector("#fName").value,
+   const ticket = {
+    itemName: document.querySelector("#fName").value.trim(),
     category: document.querySelector("#fCat").value,
     eventDate: document.querySelector("#fDate").value,
-    location: document.querySelector("#fPlace").value,
-    contactName: document.querySelector("#fPerson").value,
-    contactInfo: document.querySelector("#fContact").value,
-    description: document.querySelector("#fDesc").value,
+    location: document.querySelector("#fPlace").value.trim(),
+    contactName: document.querySelector("#fPerson").value.trim(),
+    contactInfo: document.querySelector("#fContact").value.trim(),
+    description: document.querySelector("#fDesc").value.trim(),
     type: formType.toUpperCase()
   };
 
