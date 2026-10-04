@@ -233,52 +233,77 @@ textarea{
 }
 
 /* Cards */
-.grid{
-    display:grid;
-    grid-template-columns:repeat(auto-fill,minmax(235px,1fr));
-    gap:16px;
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(235px, 1fr));
+    gap: 16px;
 }
 
-.card{
-    position:relative;
-    ackground:var(--card);
-    border:1px solid var(--line);
-    border-left:6px solid var(--c);
-    border-radius:14px;padding:16px 16px 14px;
-    cursor:pointer;
-     display:flex;
-     flex-direction:column;
-     gap:5px;
-     text-align:left;
-     font:inherit;
-     color:inherit;
-     box-shadow:0 1px 3px rgba(19,28,51,.08);
+.card {
+    position: relative;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-left: 6px solid var(--c);
+    border-radius: 14px;
+    padding: 16px 16px 14px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    text-align: left;
+    font: inherit;
+    color: inherit;
+    box-shadow: 0 1px 3px rgba(19, 28, 51, .08);
+    overflow: hidden;            /* new: nothing can spill out of the card */
 }
 
-.card.lost{
-    --c:var(--lost);
+.card.lost {
+    --c: var(--lost);
 }
 
-.card.found{
-    --c:var(--found);
+.card.found {
+    --c: var(--found);
 }
 
-.card:hover{
-    box-shadow:0 4px 14px rgba(19,28,51,.14);
+.card:hover {
+    box-shadow: 0 4px 14px rgba(19, 28, 51, .14);
 }
 
-.card.done{
-    opacity:.7;
+.card.done {
+    opacity: .7;
 }
 
-.card.done 
-.foot span:first-child{
-    color:var(--ok);
+.card.done .foot span:first-child {
+    color: var(--ok);
 }
 
-.card h3{
-    font:700 19px/1.2 var(--head);
-    margin:6px 0 2px;
+.card h3 {
+    font: 700 19px/1.2 var(--head);
+    margin: 6px 0 2px;
+}
+
+/* new: photo frame, same size on every card, cropped to fit */
+.card-img {
+    display: block;
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+    border-radius: 10px;
+}
+
+/* new: the grey "No photo" box keeps the same height */
+.card-img.placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #e4e6e8;
+    color: #6b7280;
+}
+
+/* new: photo inside the details popup */
+#view .card-img {
+    height: 240px;
+    margin-bottom: 14px;
 }
 
 .top{

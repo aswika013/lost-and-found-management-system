@@ -276,7 +276,7 @@ function render() {
 
   visibleItems.forEach(function (item) {
     const card = document.createElement("button");
-    card.className = "card " + item.type;      // "card lost" or "card found"
+    card.className = "card " + item.type + (item.status === "returned" ? " done" : ""); // "card lost" or "card found"
 
     // the image: use the real one if it exists, otherwise a grey box
     const picture = item.image
