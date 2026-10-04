@@ -7,6 +7,12 @@ import java.util.List;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.UUID;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/tickets")
@@ -64,5 +70,26 @@ public Ticket updateStatus(@PathVariable Long id, @RequestBody Map<String, Strin
     ticket.setStatus(status);
     return repository.save(ticket);
 }
+
+    @PostMapping("/{id}/image")
+    public Ticket uploadImage(@PathVariable Long id,
+                              @RequestParam("file") MultipartFile file) throws IOException {
+        String type = file.getContentType();
+        String ext;
+        if ("image/jpeg".equals(type)) ext = ".jpg";
+        else if ("image/png".equals(type)) ext = ".png";
+        else if ("image/webp".equals(type)) ext = ".webp";
+        else throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only JPG, PNG or WEBP images");
+
+        Ticket ticket = repository.findById(id).orElseThrow();
+
+        Path folder = Paths.get("uploads");
+        Files.createDirectories(folder);
+        String filename = UUID.randomUUID() + ext;
+        Files.copy(file.getInputStream(), folder.resolve(filename));
+
+        ticket.setImageUrl("/uploads/" + filename);
+        return repository.save(ticket);
+    }
 
 }

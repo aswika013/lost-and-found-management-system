@@ -1,5 +1,8 @@
 //for filter-button
-const API_URL = "http://localhost:8081/api/tickets";
+const BACKEND = "http://localhost:8081";
+const API_URL = BACKEND + "/api/tickets";
+
+let editingId = null;   // null = creating a new ticket, a number = editing that ticket
 let formType = "lost";
 const form = document.querySelector("#form");
 
@@ -27,26 +30,26 @@ const formDialog = document.querySelector("#formDlg");
 const formTitle = document.querySelector("#fTitle");
 const cancelButton = document.querySelector("#fCancel");
 
-newButtons.forEach(function (button) {
-  button.addEventListener("click", function () {
+function setFormLabels(kind, editing) {
+  const word = kind === "lost" ? "lost" : "found";
 
-    form.reset();
+  formTitle.textContent = editing
+    ? "Edit " + word + " item"
+    : (kind === "lost" ? "Report lost item" : "Register found item");
 
-    formType = button.dataset.new;
-
-if (formType === "lost") {
-  formTitle.textContent = "Report lost item";
-  document.querySelector("#fDateL").textContent = "Date lost";
-  document.querySelector("#fPlaceL").textContent = "Where was it lost?";
-  document.querySelector("#fPersonL").textContent = "Owner name";
-} else {
-  formTitle.textContent = "Register found item";
-  document.querySelector("#fDateL").textContent = "Date found";
-  document.querySelector("#fPlaceL").textContent = "Where was it found?";
-  document.querySelector("#fPersonL").textContent = "Finder name";
+  document.querySelector("#fDateL").textContent = kind === "lost" ? "Date lost" : "Date found";
+  document.querySelector("#fPlaceL").textContent = kind === "lost" ? "Where was it lost?" : "Where was it found?";
+  document.querySelector("#fPersonL").textContent = kind === "lost" ? "Owner name" : "Finder name";
+  document.querySelector("#fSave").textContent = editing ? "Save changes" : "Save report";
 }
 
-  formDialog.showModal();
+newButtons.forEach(function (button) {
+  button.addEventListener("click", function () {
+    form.reset();
+    editingId = null;
+    formType = button.dataset.new;
+    setFormLabels(formType, false);
+    formDialog.showModal();
   });
 });
 
@@ -83,9 +86,11 @@ function fromApi(ticket) {
     type: ticket.type.toLowerCase(),
     name: ticket.itemName,
     category: ticket.category,
+    contactName: ticket.contactName,
+    contactInfo: ticket.contactInfo,
     place: ticket.location,
     date: ticket.eventDate,
-    image: null,
+    image: ticket.imageUrl ? BACKEND + ticket.imageUrl : null,
     description: ticket.description,
     status: ticket.status.toLowerCase(),
     createdAt: ticket.createdAt
@@ -153,6 +158,110 @@ function updateStats() {
     items.filter(function (i) { return i.status === "returned"; }).length;
 }
 
+const viewDialog = document.querySelector("#viewDlg");
+const viewBox = document.querySelector("#view");
+
+function openDetails(item) {
+  const statuses = ["open", "matched", "returned"];
+
+  const statusButtons = statuses.map(function (s) {
+    return `<button type="button" class="btn ${s === item.status ? "dark" : "ghost"}"
+              data-status="${s}" ${s === item.status ? "disabled" : ""}>
+              Mark ${s}
+            </button>`;
+  }).join("");
+
+  viewBox.innerHTML = `
+    <h2>${item.name}</h2>
+    <p class="meta">${item.type === "lost" ? "Lost" : "Found"} item · ${item.category}</p>
+    <p class="meta">Place: ${item.place}</p>
+    <p class="meta">Date: ${item.date}</p>
+    <p class="meta">Contact: ${item.contactName || "-"} (${item.contactInfo || "-"})</p>
+    <p>${item.description || "No description"}</p>
+    <p class="meta">Status: <b>${item.status}</b></p>
+    <div class="acts">
+      <button type="button" class="btn ghost" id="vClose">Close</button>
+      <button type="button" class="btn ghost" id="vEdit">Edit</button>
+      <button type="button" class="btn ghost" id="vDelete">Delete</button>
+      ${statusButtons}
+    </div>
+  `;
+
+  viewBox.querySelector("#vClose").addEventListener("click", function () {
+    viewDialog.close();
+  });
+
+    viewBox.querySelector("#vEdit").addEventListener("click", function () {
+    openEdit(item);
+  });
+
+  viewBox.querySelector("#vDelete").addEventListener("click", function () {
+    const sure = confirm('Delete "' + item.name + '"? This cannot be undone.');
+    if (sure) {
+      deleteTicket(item.id);
+    }
+  });
+
+  viewBox.querySelectorAll("[data-status]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      setStatus(item.id, button.dataset.status);
+    });
+  });
+
+  viewDialog.showModal();
+}
+
+// PATCH: change a ticket's status in the backend
+async function setStatus(id, status) {
+  try {
+    const response = await fetch(API_URL + "/" + id + "/status", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: status.toUpperCase() })
+    });
+    if (!response.ok) throw new Error("Server error");
+
+    viewDialog.close();
+    loadItems();   // refresh cards and stats
+  } catch (error) {
+    console.error("Could not update status:", error);
+    alert("Could not update the status. Is the backend running?");
+  }
+}
+
+// DELETE: remove a ticket from the backend
+async function deleteTicket(id) {
+  try {
+    const response = await fetch(API_URL + "/" + id, { method: "DELETE" });
+    if (!response.ok) throw new Error("Server error");
+
+    viewDialog.close();
+    loadItems();   // refresh cards and stats
+  } catch (error) {
+    console.error("Could not delete ticket:", error);
+    alert("Could not delete the ticket. Is the backend running?");
+  }
+}
+
+function openEdit(item) {
+  viewDialog.close();
+  form.reset();
+
+  editingId = item.id;
+  formType = item.type;
+  setFormLabels(item.type, true);
+
+  document.querySelector("#fName").value = item.name;
+  document.querySelector("#fCat").value = item.category;
+  document.querySelector("#fDate").value = item.date;
+  document.querySelector("#fPlace").value = item.place;
+  document.querySelector("#fPerson").value = item.contactName || "";
+  document.querySelector("#fContact").value = item.contactInfo || "";
+  document.querySelector("#fDesc").value = item.description || "";
+
+  formDialog.showModal();
+}
+
 function render() {
   const grid = document.querySelector("#grid");
   const visibleItems = getVisibleItems();
@@ -183,13 +292,17 @@ function render() {
       <div class="foot"><span>${item.status}</span></div>
     `;
 
+      card.addEventListener("click", function () {
+      openDetails(item);
+    });
+
     grid.appendChild(card);
   });
 }
 
 // POST: runs when "Save report" is clicked
 form.addEventListener("submit", async function (event) {
-  event.preventDefault();   // stop the default dialog behaviour
+  event.preventDefault();
 
   const ticket = {
     itemName: document.querySelector("#fName").value,
@@ -199,19 +312,31 @@ form.addEventListener("submit", async function (event) {
     contactName: document.querySelector("#fPerson").value,
     contactInfo: document.querySelector("#fContact").value,
     description: document.querySelector("#fDesc").value,
-    type: formType.toUpperCase()   // "LOST" or "FOUND"
+    type: formType.toUpperCase()
   };
 
+  const isEditing = editingId !== null;
+
+  if (isEditing) {
+    // keep the ticket's current status: the backend PUT overwrites it
+    const current = items.find(function (i) { return i.id === editingId; });
+    ticket.status = current.status.toUpperCase();
+  }
+
+  const url = isEditing ? API_URL + "/" + editingId : API_URL;
+  const method = isEditing ? "PUT" : "POST";
+
   try {
-    const response = await fetch(API_URL, {
-      method: "POST",
+    const response = await fetch(url, {
+      method: method,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(ticket)
     });
     if (!response.ok) throw new Error("Server error");
 
+    editingId = null;
     formDialog.close();
-    loadItems();   // refresh the cards
+    loadItems();
   } catch (error) {
     console.error("Could not save ticket:", error);
     alert("Could not save the report. Is the backend running?");

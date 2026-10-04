@@ -24,6 +24,7 @@ public class Ticket {
     private String type;              // LOST or FOUND
     private String status;            // OPEN, MATCHED, RETURNED
     private LocalDateTime createdAt;
+    private String imageUrl;
 
     // Runs automatically just before a new ticket is saved
     @PrePersist
@@ -66,4 +67,7 @@ public class Ticket {
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public String getImageUrl() { return imageUrl; }
+    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
 }
