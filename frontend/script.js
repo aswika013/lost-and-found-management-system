@@ -318,7 +318,6 @@ form.addEventListener("submit", async function (event) {
   const isEditing = editingId !== null;
 
   if (isEditing) {
-    // keep the ticket's current status: the backend PUT overwrites it
     const current = items.find(function (i) { return i.id === editingId; });
     ticket.status = current.status.toUpperCase();
   }
@@ -333,6 +332,20 @@ form.addEventListener("submit", async function (event) {
       body: JSON.stringify(ticket)
     });
     if (!response.ok) throw new Error("Server error");
+
+    // step 2: upload the photo, if one was chosen
+    const saved = await response.json();
+    const file = document.querySelector("#fImage").files[0];
+
+    if (file) {
+      const data = new FormData();
+      data.append("file", file);
+      const imgResponse = await fetch(API_URL + "/" + saved.id + "/image", {
+        method: "POST",
+        body: data        // no Content-Type header: the browser sets it
+      });
+      if (!imgResponse.ok) throw new Error("Image upload failed");
+    }
 
     editingId = null;
     formDialog.close();
